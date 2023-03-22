@@ -1,5 +1,6 @@
-import { serve } from "https://deno.land/std@0.171.0/http/server.ts";
-import { configure, renderFile } from "https://deno.land/x/eta@v2.0.0/mod.ts";
+import { serve } from "./deps.js";
+import { configure, renderFile } from "./deps.js";
+import { sql } from "./database/database.js";
 
 configure({
   views: `${Deno.cwd()}/views/`,
@@ -15,18 +16,22 @@ const data = {
 
 const handleRequest = async (request) => {
   const url = new URL(request.url);
-  let message = 0;
-
-  if (url.pathname === "/visits") {
+  if (url.pathname === "/count") {
     data.count++;
     return new Response(await renderFile("count.eta", data), responseDetails);
-  } else if (url.pathname === "/meaning") {
-      message = "Seeking truths beyond meaning of life, you will find 43.";
-  } else {
-      message = "Nothing here yet.";
   }
 
-  return new Response(message);
+  if (url.pathname === "/addresses") {
+    const rows = await sql`SELECT COUNT(*) as count FROM addresses`;
+    let rowCount = -42;
+    if (rows.length > 0) {
+      rowCount = rows[0].count;
+    }
+
+    return new Response(`Total rows: ${rowCount}`);
+  }
+
+  return new Response("Hello you!");
 };
 
 serve(handleRequest, { port: 7777 });
